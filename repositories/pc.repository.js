@@ -11,6 +11,8 @@ class PCRepository {
     // PC 목록 조회
     getPCList = async () => {
         try {
+            await this.updatePcStatus()
+
             const pcList = await this.pcModel.findAll({
                 attributes: ['pcId', 'pcStatus']
             })
@@ -32,9 +34,6 @@ class PCRepository {
                 on p.pcId = p2.pcId\
             set pcStatus = 0\
             where endDateTime < CURRENT_TIMESTAMP and pcStatus = 1')
-
-            console.log(results)
-            console.log(metadata)
 
             return
         } catch (error) {

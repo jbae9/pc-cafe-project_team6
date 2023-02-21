@@ -1,40 +1,23 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const { createServer } = require("http");
-const socketIo = require("socket.io"); // SocketIO 모듈 불러오기
 const path = require("path");
+const dotenv = require('dotenv')
+dotenv.config()
 
 const app = express();
-const port = 1004;
+const port = process.env.PORT
 
 // socket
 const http = createServer(app);
-// const io = socketIo(http);
-
-// // socket connect event handling
-// io.on("connection", (sock) => {
-//     console.log("새로운 소켓이 연결됐어요!");
-  
-//     sock.on("BUY", (data) => {
-//       const emitData = {
-//         ...data,
-//         date: new Date().toISOString(),
-//       }
-//       io.emit("BUY_GOODS", emitData);
-//     });
-  
-//     sock.on("disconnect", () => {
-//       console.log(sock.id, "연결이 끊어졌어요!");
-//     });
-//   });
-
+const io = require('socket.io')(http)
 
 /* define router */
 const router = require("./routes");
 const ejsRouter = require("./routes/ejs.routes");
 
 /* router */
-app.use(cookieParser());
+app.use(cookieParser(process.env.JWT_SECRET_KEY));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/api", router);
@@ -45,7 +28,7 @@ app.set("view engine", "ejs");
 app.set("views", __dirname + "/views");
 app.use(express.static(path.join(__dirname + "/views")));
 
-const io = require('socket.io')(http)
+
 
 io.on('connection', client => {
     console.log('소켓이 연결되었습니다.')

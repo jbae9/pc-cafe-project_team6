@@ -1,46 +1,82 @@
-// 추후 config.json 참고하여 SECRET_KEY: "teamSparta6" 변경할 것. + User.controller도 변경.
-
 const jwt = require("jsonwebtoken");
-const { Users, PCOrders } = require("../models");
+const { Users, PCOrders } = require("../models")
+const RedisService = require('../services/redis.service')
+const JwtService = require('../services/jwt.service')
+const secretKey = process.env.JWT_SECRET_KEY
 
 async function auth_middleware(req, res, next) {
     try {
-        const token = req.cookies.accessToken
+        const redisService = new RedisService()
+        const jwtService = new JwtService()
 
-        // 쿠키 존재 여부 & 쿠키 jwt 여부 확인 후 없으면 -> 로그인 후 이용하세요 메시지 보내기
-        if (!token) {
-            //   return res.status(400).send({ message: "로그인 후 사용가능합니다." })
-            res.locals.user = {}
-            return next()
-        }
+        const { accessToken, refreshToken } = req.signedCookies
+        console.log(accessToken, refreshToken)
 
-        // jwt.verify를 이용해 쿠키 토큰값 인증
-        const decoded = jwt.verify(token, "teamSparta6", function(err, decoded) {
+
+        // Check if refresh token exists on Redis
+        const redisRefreshToken = !refreshToken ? [] : await redisService.get(refreshToken)
+        console.log(redisRefreshToken)
+
+        // jwt.verify를 이용해 access 토큰값 인증
+        const accessDecoded = jwt.verify(accessToken, secretKey, function (err, decoded) {
             if (err) {
-                console.log('ERROR')
-                res.clearCookie("accessToken")
-                res.locals.user = {}
-                return next()
-            } else return decoded
+                return undefined
+            } else {
+                // 1. Access token not expired, refresh token expired => create new refresh token
+                if (redisRefreshToken.length === 0) {
+                    const newRefreshToken = jwtService.createRefreshToken()
+                    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, signed: true })
+                    redisService.set({
+                        key: newRefreshToken,
+                        value: decoded.userId,
+                        timeType: "EX",
+                        time: process.env.JWT_REFRESH_TOKEN_TIME
+                    })
+                }
+                return decoded
+            }
         })
 
-        if (!decoded) {
-            res.locals.user = {}
-            return next()
-        }
 
-        const userId = decoded.userId
+        // If access token expired or undefined
+        let checkRefreshToken
+        if (accessDecoded === undefined) {
+            // Verify refresh token
+            checkRefreshToken = jwt.verify(refreshToken, secretKey, function (err, decoded) {
+                if (err) {
+                    return undefined
+                } else {
+                    return decoded
+                }
+            })
 
-        const user = await Users.findByPk(userId, { attributes: ['userId','id', 'name', 'points', 'role'], raw: true })
+            if (!checkRefreshToken && redisRefreshToken.length === 0) {
+                // 2. If access token expired & refresh token expired => login again
+                res.clearCookie("accessToken")
+                res.clearCookie("refreshToken")
+                res.locals.user = {}
+                return next()
+            } else {
+                // 3. If access token expired and refresh token is not expired => create new access token
+                const newAccessToken = jwtService.createAccessToken(redisRefreshToken)
+                res.cookie("accessToken", newAccessToken, { httpOnly: true, signed: true })
+            }
+        }        
+
+
+        // If access token is not expired
+        const userId = accessDecoded?.userId === undefined ? parseInt(redisRefreshToken) : accessDecoded.userId
+
+        const user = await Users.findByPk(userId, { attributes: ['userId', 'id', 'name', 'points', 'role'], raw: true })
         res.locals.user = user;
 
         const pcOrder = await PCOrders.findAll({
-            where: {userId: userId},
+            where: { userId: userId },
             attributes: ['userId', 'pcId', 'endDateTime'],
             order: [['endDateTime', 'DESC']],
             raw: true
         })
-        
+
         if (!pcOrder[0]) {
             res.locals.pcOrder = {}
         } else {
@@ -51,6 +87,7 @@ async function auth_middleware(req, res, next) {
 
     } catch (error) {
         console.log(error)
+        res.clearCookie('accessToken')
         res.status(500).send({ error });
     }
 }
