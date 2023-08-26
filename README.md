@@ -48,7 +48,8 @@
 ![](https://relic-cloth-7a9.notion.site/image/https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fefc94ad6-6303-43bc-b3bc-4f8203d3a28c%2FUntitled.png?id=3ab110fd-7a3d-4eca-8b33-7b366afcbbff&table=block&spaceId=c4b6c9fd-2454-42e3-bbf3-a8a5411db531&width=2000&userId=&cache=v2)
 
 3. 관리자 페이지
-![](https://relic-cloth-7a9.notion.site/image/https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fefc94ad6-6303-43bc-b3bc-4f8203d3a28c%2FUntitled.png?id=3ab110fd-7a3d-4eca-8b33-7b366afcbbff&table=block&spaceId=c4b6c9fd-2454-42e3-bbf3-a8a5411db531&width=2000&userId=&cache=v2)
+![image](https://github.com/jbae9/pc-cafe-project_team6/assets/20327256/36a28854-de8e-4e44-8795-fc7a721574b4)
+
 
 ## 시간 부족으로 적용을 못 한 기능
 ### 상품 수정
